@@ -1,5 +1,5 @@
 # MAC_SDK
-Partial copy of Monkey Audio (APE/MAC) SDK
+Partial copy (only MACLib) of Monkey Audio (APE/MAC) SDK
 
 === Monkey's Audio SDK ===
 
