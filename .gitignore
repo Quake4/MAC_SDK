@@ -2,11 +2,14 @@
 Analyze/
 Compress/
 Decompress/
-Shared/
 DirectShow Filter/
 MAC/
 MACDll/
+32/
+64/
 
 .vs/
 bin/
 obj/
+
+UpgradeLog.htm
