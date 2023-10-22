@@ -1,0 +1,12 @@
+3rd Party/
+Analyze/
+Compress/
+Decompress/
+Shared/
+DirectShow Filter/
+MAC/
+MACDll/
+
+.vs/
+bin/
+obj/
