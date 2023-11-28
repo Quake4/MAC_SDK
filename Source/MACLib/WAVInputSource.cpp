@@ -411,7 +411,7 @@ int CWAVInputSource::AnalyzeSource()
     while (!(RIFFChunkHeader.cChunkLabel[0] == 'd' && RIFFChunkHeader.cChunkLabel[1] == 'a' && RIFFChunkHeader.cChunkLabel[2] == 't' && RIFFChunkHeader.cChunkLabel[3] == 'a'))
     {
         // move the file pointer to the end of this chunk
-        CSmartPtr<unsigned char> spRIFFChunk(new unsigned char[RIFFChunkHeader.nChunkBytes], true);
+        CSmartPtr<unsigned char> spRIFFChunk(new unsigned char [RIFFChunkHeader.nChunkBytes], true);
         RETURN_ON_ERROR(ReadSafe(m_spIO, spRIFFChunk, static_cast<int>(RIFFChunkHeader.nChunkBytes)))
 
         // check again for the data chunk
