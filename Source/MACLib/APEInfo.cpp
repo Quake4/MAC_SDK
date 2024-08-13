@@ -77,7 +77,7 @@ CAPEInfo::CAPEInfo(int * pErrorCode, const wchar_t * pFilename, CAPETag * pTag, 
         if (nSize < (APE_BYTES_IN_MEGABYTE * 200))
         {
             CWholeFileIO * pWholeFile = CreateWholeFileIO(m_spIO, nSize);
-            if (pWholeFile != NULL)
+            if (pWholeFile != APE_NULL)
             {
                 m_spIO.SetDelete(false);
                 m_spIO.Assign(pWholeFile);
@@ -158,9 +158,11 @@ int CAPEInfo::CloseFile()
 {
     m_spIO.Delete();
     m_APEFileInfo.spWaveHeaderData.Delete();
-    m_APEFileInfo.spSeekBitTable.Delete();
     m_APEFileInfo.spSeekByteTable64.Delete();
     m_APEFileInfo.spAPEDescriptor.Delete();
+#ifdef APE_BACKWARDS_COMPATIBILITY
+    m_APEFileInfo.spSeekBitTable.Delete();
+#endif
 
     m_spAPETag.Delete();
 
@@ -335,7 +337,11 @@ int64 CAPEInfo::GetInfo(IAPEDecompress::APE_DECOMPRESS_FIELDS Field, int64 nPara
             if ((nFrame < 0) || (static_cast<uint32>(nFrame) >= m_APEFileInfo.nTotalFrames))
                 nResult = 0;
             else
+#ifdef APE_BACKWARDS_COMPATIBILITY
                 nResult = m_APEFileInfo.spSeekBitTable[nFrame];
+#else
+                nResult = 0;
+#endif
         }
         break;
     }
@@ -355,7 +361,7 @@ int64 CAPEInfo::GetInfo(IAPEDecompress::APE_DECOMPRESS_FIELDS Field, int64 nPara
 
         if (m_APEFileInfo.nFormatFlags & APE_FORMAT_FLAG_CREATE_WAV_HEADER)
         {
-            if (m_APEFileInfo.nWAVDataBytes >= (4 * APE_BYTES_IN_GIGABYTE))
+            if (m_APEFileInfo.nWAVDataBytes >= (APE_BYTES_IN_GIGABYTE * 4))
             {
                 if (static_cast<APE::int64>(sizeof(RF64_HEADER)) > nMaxBytes)
                 {

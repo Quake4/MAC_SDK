@@ -42,11 +42,13 @@ IAPEDecompress * CreateIAPEDecompressCore(CAPEInfo * pAPEInfo, int nStartBlock, 
             {
                 // create
                 const int nVersion = static_cast<int>(pAPEInfo->GetInfo(IAPEDecompress::APE_INFO_FILE_VERSION));
-                if ((nVersion >= 3930) && (nVersion <= APE_FILE_VERSION_NUMBER))
+                if ((nVersion >= 3990) && (nVersion <= APE_FILE_VERSION_NUMBER))
                     spAPEDecompress.Assign(new CAPEDecompress(pErrorCode, pAPEInfo, nStartBlock, nFinishBlock));
                 else if (nVersion == 4110)
                     spAPEDecompress.Assign(new CAPEDecompress(pErrorCode, pAPEInfo, nStartBlock, nFinishBlock)); // a few users have mailed me files with this version -- I don't know where they came from but they verify fine using this code
 #ifdef APE_BACKWARDS_COMPATIBILITY
+                else if ((nVersion >= 3930) && (nVersion <= APE_FILE_VERSION_NUMBER))
+                    spAPEDecompress.Assign(new CAPEDecompress(pErrorCode, pAPEInfo, nStartBlock, nFinishBlock));
                 else if (nVersion < 3930)
                     spAPEDecompress.Assign(new CAPEDecompressOld(pErrorCode, pAPEInfo, nStartBlock, nFinishBlock));
 #endif
@@ -319,12 +321,12 @@ void __stdcall GetAPECompressionLevelName(int nCompressionLevel, APE::str_utfn *
 }
 
 /**************************************************************************************************
-Simple progress callback (for legacy support)
+Simple progress callback
 **************************************************************************************************/
-class CAPEProgressCallbackLegacy : public IAPEProgressCallback
+class CAPEProgressCallbackSimple : public IAPEProgressCallback
 {
 public:
-    CAPEProgressCallbackLegacy(int * pProgress, APE_PROGRESS_CALLBACK ProgressCallback, int * pKillFlag)
+    CAPEProgressCallbackSimple(int * pProgress, APE_PROGRESS_CALLBACK ProgressCallback, int * pKillFlag)
     {
         m_pProgress = pProgress;
         m_ProgressCallback = ProgressCallback;
@@ -399,28 +401,28 @@ Legacy callback wrappers
 #ifdef APE_SUPPORT_COMPRESS
 int __stdcall CompressFileW(const APE::str_utfn * pInputFilename, const APE::str_utfn * pOutputFilename, int nCompressionLevel, int * pPercentageDone, APE_PROGRESS_CALLBACK ProgressCallback, int * pKillFlag)
 {
-    CAPEProgressCallbackLegacy ProgressCallbackLegacy(pPercentageDone, ProgressCallback, pKillFlag);
-    return CompressFileW2(pInputFilename, pOutputFilename, nCompressionLevel, &ProgressCallbackLegacy);
+    CAPEProgressCallbackSimple ProgressCallbackSimple(pPercentageDone, ProgressCallback, pKillFlag);
+    return CompressFileW2(pInputFilename, pOutputFilename, nCompressionLevel, &ProgressCallbackSimple);
 }
 #endif
 
 int __stdcall VerifyFileW(const APE::str_utfn * pInputFilename, int * pPercentageDone, APE_PROGRESS_CALLBACK ProgressCallback, int * pKillFlag, bool bQuickVerifyIfPossible)
 {
-    CAPEProgressCallbackLegacy ProgressCallbackLegacy(pPercentageDone, ProgressCallback, pKillFlag);
-    return VerifyFileW2(pInputFilename, &ProgressCallbackLegacy, bQuickVerifyIfPossible);
+    CAPEProgressCallbackSimple ProgressCallbackSimple(pPercentageDone, ProgressCallback, pKillFlag);
+    return VerifyFileW2(pInputFilename, &ProgressCallbackSimple, bQuickVerifyIfPossible);
 }
 
 int __stdcall DecompressFileW(const APE::str_utfn * pInputFilename, const APE::str_utfn * pOutputFilename, int * pPercentageDone, APE_PROGRESS_CALLBACK ProgressCallback, int * pKillFlag)
 {
-    CAPEProgressCallbackLegacy ProgressCallbackLegacy(pPercentageDone, ProgressCallback, pKillFlag);
-    const int nResult = DecompressFileW2(pInputFilename, pOutputFilename, &ProgressCallbackLegacy);
+    CAPEProgressCallbackSimple ProgressCallbackSimple(pPercentageDone, ProgressCallback, pKillFlag);
+    const int nResult = DecompressFileW2(pInputFilename, pOutputFilename, &ProgressCallbackSimple);
     return nResult;
 }
 
 int __stdcall ConvertFileW(const APE::str_utfn * pInputFilename, const APE::str_utfn * pOutputFilename, int nCompressionLevel, int * pPercentageDone, APE_PROGRESS_CALLBACK ProgressCallback, int * pKillFlag)
 {
-    CAPEProgressCallbackLegacy ProgressCallbackLegacy(pPercentageDone, ProgressCallback, pKillFlag);
-    return ConvertFileW2(pInputFilename, pOutputFilename, nCompressionLevel, &ProgressCallbackLegacy);
+    CAPEProgressCallbackSimple ProgressCallbackSimple(pPercentageDone, ProgressCallback, pKillFlag);
+    return ConvertFileW2(pInputFilename, pOutputFilename, nCompressionLevel, &ProgressCallbackSimple);
 }
 
 /**************************************************************************************************
@@ -783,15 +785,12 @@ int DecompressCore(const APE::str_utfn * pInputFilename, const APE::str_utfn * p
         // create the progress helper
         spMACProgressHelper.Assign(new CMACProgressHelper(nBlocksLeft / BLOCKS_PER_DECODE, pProgressCallback));
 
+        // processing flags
+        IAPEDecompress::APE_GET_DATA_PROCESSING Processing = { (nOutputMode != UNMAC_DECODER_OUTPUT_APE), (nOutputMode != UNMAC_DECODER_OUTPUT_APE), (nOutputMode != UNMAC_DECODER_OUTPUT_APE) };
+
         // main decoding loop
         while (nBlocksLeft > 0)
         {
-            // processing flags
-            IAPEDecompress::APE_GET_DATA_PROCESSING Processing;
-            Processing.bApplyFloatProcessing = (nOutputMode != UNMAC_DECODER_OUTPUT_APE);
-            Processing.bApplySigned8BitProcessing = (nOutputMode != UNMAC_DECODER_OUTPUT_APE);
-            Processing.bApplyBigEndianProcessing = (nOutputMode != UNMAC_DECODER_OUTPUT_APE);
-
             // decode data
             int64 nBlocksDecoded = -1;
             const int nResult = spAPEDecompress->GetData(spTempBuffer, BLOCKS_PER_DECODE, &nBlocksDecoded, &Processing);
